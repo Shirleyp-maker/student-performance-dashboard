@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 # Configuración de la página
 st.set_page_config(
     page_title="Predicción de Rendimiento Estudiantil",
-    page_icon="🎓",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -66,27 +66,15 @@ st.markdown("""
 
 # Función para descargar archivos de Google Drive
 def download_file_from_google_drive(file_id, destination):
-    """Descargar archivo desde Google Drive"""
+    """Descargar archivo desde Google Drive usando gdown"""
     if os.path.exists(destination):
         return True
     
     try:
-        URL = "https://drive.google.com/uc?export=download"
-        session = requests.Session()
-        response = session.get(URL, params={'id': file_id}, stream=True)
-        
-        # Manejar archivos grandes con confirmación
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                response = session.get(URL, params={'id': file_id, 'confirm': value}, stream=True)
-                break
-        
-        # Guardar archivo
-        with open(destination, "wb") as f:
-            for chunk in response.iter_content(32768):
-                if chunk:
-                    f.write(chunk)
-        return True
+        import gdown
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, destination, quiet=False)
+        return os.path.exists(destination)
     except Exception as e:
         st.error(f"Error descargando {destination}: {str(e)}")
         return False
@@ -190,16 +178,16 @@ def load_models():
                 st.warning(f"Error cargando Red Neuronal: {str(e)}")
     
     if models:
-        st.success(f"✅ {len(models)} modelos cargados exitosamente")
+        st.success(f" {len(models)} modelos cargados exitosamente")
     else:
-        st.warning("⚠️ No se pudieron cargar los modelos ML")
+        st.warning("No se pudieron cargar los modelos ML")
     
     return models, scaler
 
 # Función principal
 def main():
     # Título y descripción
-    st.title("🎓 Sistema de Predicción de Rendimiento Estudiantil")
+    st.title("Sistema de Predicción de Rendimiento Estudiantil")
     st.markdown("### Análisis y Predicción basado en Machine Learning")
     st.markdown("---")
     
@@ -212,17 +200,17 @@ def main():
         return
     
     # Sidebar con filtros
-    st.sidebar.header("⚙️ Filtros y Configuración")
+    st.sidebar.header("Filtros y Configuración")
     
     # Información del dataset
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📊 Información del Dataset")
+    st.sidebar.markdown("### Información del Dataset")
     st.sidebar.info(f"**Total de estudiantes:** {len(df)}")
     st.sidebar.info(f"**Variables:** {len(df.columns)}")
     
     # Filtros
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🔍 Filtrar Datos")
+    st.sidebar.markdown("###  Filtrar Datos")
     
     if 'Gender' in df.columns:
         gender_filter = st.sidebar.multiselect(
@@ -251,11 +239,11 @@ def main():
     
     # Tabs principales
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Vista General", 
-        "📈 Análisis Exploratorio", 
-        "🤖 Modelos ML", 
-        "🎯 Predictor", 
-        "📋 Datos"
+        "Vista General", 
+        "Análisis Exploratorio", 
+        "Modelos ML", 
+        "Predictor", 
+        "Datos"
     ])
     
     # TAB 1: Vista General
@@ -340,7 +328,7 @@ def main():
             st.plotly_chart(fig_scatter, use_container_width=True)
         
         # Análisis por categorías
-        st.subheader("📊 Análisis por Categorías")
+        st.subheader("Análisis por Categorías")
         
         col1, col2 = st.columns(2)
         
@@ -387,7 +375,7 @@ def main():
         st.header("Análisis Exploratorio de Datos")
         
         # Correlaciones
-        st.subheader("📊 Matriz de Correlación")
+        st.subheader("Matriz de Correlación")
         
         numeric_cols = df_filtered.select_dtypes(include=[np.number]).columns
         corr_matrix = df_filtered[numeric_cols].corr()
@@ -403,7 +391,7 @@ def main():
         st.plotly_chart(fig_corr, use_container_width=True)
         
         # Top correlaciones con GPA
-        st.subheader("🎯 Factores más Importantes para el GPA")
+        st.subheader("Factores más Importantes para el GPA")
         
         gpa_corr = corr_matrix['GPA'].drop('GPA').sort_values(ascending=False)
         
@@ -440,7 +428,7 @@ def main():
             st.plotly_chart(fig_neg, use_container_width=True)
         
         # Distribuciones por variable
-        st.subheader("📈 Distribuciones de Variables")
+        st.subheader("Distribuciones de Variables")
         
         col1, col2 = st.columns(2)
         
@@ -496,7 +484,7 @@ def main():
         }
         
         # Métricas de modelos
-        st.subheader("📊 Métricas de Rendimiento")
+        st.subheader("Métricas de Rendimiento")
         
         col1, col2, col3 = st.columns(3)
         
@@ -508,7 +496,7 @@ def main():
                 st.metric("R² Score", f"{metrics['R2']:.4f}")
         
         # Gráfico comparativo
-        st.subheader("📈 Comparación Visual de Modelos")
+        st.subheader("Comparación Visual de Modelos")
         
         metrics_df = pd.DataFrame(model_results).T.reset_index()
         metrics_df.columns = ['Modelo', 'RMSE', 'MAE', 'R2']
@@ -538,10 +526,10 @@ def main():
         
         # Mejor modelo
         best_model = min(model_results.items(), key=lambda x: x[1]['RMSE'])
-        st.success(f"🏆 **Mejor Modelo:** {best_model[0]} con RMSE de {best_model[1]['RMSE']:.4f}")
+        st.success(f"**Mejor Modelo:** {best_model[0]} con RMSE de {best_model[1]['RMSE']:.4f}")
         
         # Información adicional
-        with st.expander("ℹ️ Información sobre las Métricas"):
+        with st.expander("Información sobre las Métricas"):
             st.markdown("""
             - **RMSE (Root Mean Squared Error):** Mide el error promedio de las predicciones. Valores más bajos indican mejor rendimiento.
             - **MAE (Mean Absolute Error):** Error absoluto promedio de las predicciones. Más robusto a valores atípicos.
@@ -550,14 +538,14 @@ def main():
     
     # TAB 4: Predictor
     with tab4:
-        st.header("🎯 Predictor de Rendimiento Estudiantil")
+        st.header("Predictor de Rendimiento Estudiantil")
         st.markdown("Ingresa las características del estudiante para predecir su GPA")
         
         # Cargar modelos
         models, scaler = load_models()
         
         if not models:
-            st.warning("⚠️ No se encontraron modelos entrenados. Por favor, entrena los modelos primero.")
+            st.warning("No se encontraron modelos entrenados. Por favor, entrena los modelos primero.")
         else:
             # Selección de modelo
             model_choice = st.selectbox(
@@ -572,13 +560,13 @@ def main():
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.subheader("📚 Información Académica")
+                st.subheader("Información Académica")
                 study_hours = st.slider("Horas de Estudio por Semana", 0, 40, 15)
                 attendance = st.slider("Asistencia (%)", 0, 100, 85)
                 previous_grades = st.slider("Calificaciones Anteriores", 0.0, 4.0, 3.0, 0.1)
             
             with col2:
-                st.subheader("👤 Información Personal")
+                st.subheader("Información Personal")
                 age = st.slider("Edad", 15, 25, 18)
                 gender = st.selectbox("Género", options=['Male', 'Female'])
                 parental = st.selectbox(
@@ -587,13 +575,13 @@ def main():
                 )
             
             with col3:
-                st.subheader("🎯 Actividades")
+                st.subheader("Actividades")
                 extracurricular = st.selectbox("Actividades Extracurriculares", options=['No', 'Yes'])
                 tutoring = st.selectbox("Tutorías", options=['No', 'Yes'])
                 sleep_hours = st.slider("Horas de Sueño", 4, 12, 7)
             
             # Botón de predicción
-            if st.button("🚀 Predecir GPA", type="primary", use_container_width=True):
+            if st.button("Predecir GPA", type="primary", use_container_width=True):
                 with st.spinner('Generando predicción...'):
                     # Crear dataframe con los inputs
                     input_data = pd.DataFrame({
@@ -617,7 +605,7 @@ def main():
                     
                     # Mostrar resultado
                     st.markdown("---")
-                    st.subheader("📊 Resultado de la Predicción")
+                    st.subheader("Resultado de la Predicción")
                     
                     col1, col2, col3 = st.columns([1, 2, 1])
                     
@@ -657,32 +645,32 @@ def main():
                         
                         # Interpretación
                         if predicted_gpa >= 3.5:
-                            st.success("🌟 **Excelente desempeño esperado!** El estudiante muestra características de alto rendimiento.")
+                            st.success("**Excelente desempeño esperado!** El estudiante muestra características de alto rendimiento.")
                         elif predicted_gpa >= 3.0:
-                            st.info("✅ **Buen desempeño esperado.** El estudiante está en camino correcto.")
+                            st.info("**Buen desempeño esperado.** El estudiante está en camino correcto.")
                         elif predicted_gpa >= 2.5:
-                            st.warning("⚠️ **Desempeño moderado.** Se recomienda reforzar hábitos de estudio.")
+                            st.warning("**Desempeño moderado.** Se recomienda reforzar hábitos de estudio.")
                         else:
-                            st.error("❌ **Desempeño bajo esperado.** Se requiere intervención y apoyo adicional.")
+                            st.error("**Desempeño bajo esperado.** Se requiere intervención y apoyo adicional.")
                     
                     # Recomendaciones
                     st.markdown("---")
-                    st.subheader("💡 Recomendaciones Personalizadas")
+                    st.subheader("Recomendaciones Personalizadas")
                     
                     recommendations = []
                     
                     if study_hours < 10:
-                        recommendations.append("📚 Aumentar las horas de estudio semanales (objetivo: 15-20 horas)")
+                        recommendations.append("Aumentar las horas de estudio semanales (objetivo: 15-20 horas)")
                     if attendance < 80:
-                        recommendations.append("✅ Mejorar la asistencia a clases (objetivo: >85%)")
+                        recommendations.append("Mejorar la asistencia a clases (objetivo: >85%)")
                     if sleep_hours < 7:
-                        recommendations.append("😴 Aumentar las horas de sueño (objetivo: 7-9 horas)")
+                        recommendations.append("Aumentar las horas de sueño (objetivo: 7-9 horas)")
                     if extracurricular == 'No':
-                        recommendations.append("🎯 Considerar participar en actividades extracurriculares")
+                        recommendations.append("Considerar participar en actividades extracurriculares")
                     if tutoring == 'No' and predicted_gpa < 3.0:
-                        recommendations.append("👨‍🏫 Considerar sesiones de tutoría para mejorar el rendimiento")
+                        recommendations.append("Considerar sesiones de tutoría para mejorar el rendimiento")
                     if parental == 'Low':
-                        recommendations.append("👨‍👩‍👧 Fomentar mayor involucramiento parental")
+                        recommendations.append("Fomentar mayor involucramiento parental")
                     
                     if recommendations:
                         for rec in recommendations:
@@ -692,10 +680,10 @@ def main():
     
     # TAB 5: Datos
     with tab5:
-        st.header("📋 Explorador de Datos")
+        st.header("Explorador de Datos")
         
         # Estadísticas descriptivas
-        st.subheader("📊 Estadísticas Descriptivas")
+        st.subheader("Estadísticas Descriptivas")
         
         col1, col2 = st.columns([1, 3])
         
@@ -715,7 +703,7 @@ def main():
             )
         
         # Tabla de datos
-        st.subheader("🔍 Datos Filtrados")
+        st.subheader("Datos Filtrados")
         
         col1, col2, col3 = st.columns(3)
         
@@ -749,7 +737,7 @@ def main():
         with col2:
             csv = df_filtered.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="📥 Descargar CSV",
+                label="Descargar CSV",
                 data=csv,
                 file_name="student_data_filtered.csv",
                 mime="text/csv",
@@ -773,5 +761,3 @@ def show_footer():
 if __name__ == "__main__":
     main()
     show_footer()
-
-

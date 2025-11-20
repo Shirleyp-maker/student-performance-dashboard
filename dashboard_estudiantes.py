@@ -8,6 +8,8 @@ from pymongo import MongoClient
 import pickle
 from sklearn.preprocessing import StandardScaler
 import warnings
+import os
+import requests
 warnings.filterwarnings('ignore')
 
 # Configuración de la página
@@ -62,6 +64,53 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Función para descargar archivos de Google Drive
+def download_file_from_google_drive(file_id, destination):
+    """Descargar archivo desde Google Drive"""
+    if os.path.exists(destination):
+        return True
+    
+    try:
+        URL = "https://drive.google.com/uc?export=download"
+        session = requests.Session()
+        response = session.get(URL, params={'id': file_id}, stream=True)
+        
+        # Manejar archivos grandes con confirmación
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                response = session.get(URL, params={'id': file_id, 'confirm': value}, stream=True)
+                break
+        
+        # Guardar archivo
+        with open(destination, "wb") as f:
+            for chunk in response.iter_content(32768):
+                if chunk:
+                    f.write(chunk)
+        return True
+    except Exception as e:
+        st.error(f"Error descargando {destination}: {str(e)}")
+        return False
+
+# IDs de archivos en Google Drive
+MODEL_FILES = {
+    'neural_network': {
+        'id': '1XTNfEnBUuCUEHnGx6_rntdt06N3JRH92',
+        'filename': 'student_performance_neural_network.h5'
+    },
+    'scaler': {
+        'id': '1WDhIGn4BJsCJSpF5kF9YHQSAl82QSLKm',
+        'filename': 'scaler_neural_network.pkl'
+    },
+    'random_forest': {
+        'id': '14GklBehFMTis6N-dvYAMYme6w7CG5w7Z',
+        'filename': 'random_forest_model.pkl'
+    },
+    'xgboost': {
+        'id': '1rJpXcvCryjfaX9lvDFq0LI1r_9tVG7cg',
+        'filename': 'xgboost_model.pkl'
+    }
+}
+
 # Conexión a MongoDB
 @st.cache_resource
 def get_mongo_connection():
@@ -101,31 +150,51 @@ def load_data_from_mongo():
 def load_models():
     """Cargar los modelos entrenados"""
     models = {}
-    try:
-        # Cargar Random Forest
-        with open('random_forest_model.pkl', 'rb') as f:
-            models['Random Forest'] = pickle.load(f)
-    except:
-        pass
+    scaler = None
     
-    try:
-        # Cargar XGBoost
-        with open('xgboost_model.pkl', 'rb') as f:
-            models['XGBoost'] = pickle.load(f)
-    except:
-        pass
+    with st.spinner('Descargando modelos ML desde la nube...'):
+        # Descargar Random Forest
+        if download_file_from_google_drive(MODEL_FILES['random_forest']['id'], 
+                                           MODEL_FILES['random_forest']['filename']):
+            try:
+                with open(MODEL_FILES['random_forest']['filename'], 'rb') as f:
+                    models['Random Forest'] = pickle.load(f)
+            except Exception as e:
+                st.warning(f"Error cargando Random Forest: {str(e)}")
+        
+        # Descargar XGBoost
+        if download_file_from_google_drive(MODEL_FILES['xgboost']['id'], 
+                                           MODEL_FILES['xgboost']['filename']):
+            try:
+                with open(MODEL_FILES['xgboost']['filename'], 'rb') as f:
+                    models['XGBoost'] = pickle.load(f)
+            except Exception as e:
+                st.warning(f"Error cargando XGBoost: {str(e)}")
+        
+        # Descargar Scaler
+        if download_file_from_google_drive(MODEL_FILES['scaler']['id'], 
+                                           MODEL_FILES['scaler']['filename']):
+            try:
+                with open(MODEL_FILES['scaler']['filename'], 'rb') as f:
+                    scaler = pickle.load(f)
+            except Exception as e:
+                st.warning(f"Error cargando Scaler: {str(e)}")
+        
+        # Descargar y cargar Red Neuronal
+        if download_file_from_google_drive(MODEL_FILES['neural_network']['id'], 
+                                           MODEL_FILES['neural_network']['filename']):
+            try:
+                from tensorflow.keras.models import load_model
+                models['Neural Network'] = load_model(MODEL_FILES['neural_network']['filename'])
+            except Exception as e:
+                st.warning(f"Error cargando Red Neuronal: {str(e)}")
     
-    try:
-        # Cargar Red Neuronal
-        from tensorflow.keras.models import load_model
-        models['Neural Network'] = load_model('neural_network_model.h5')
-    except:
-        pass
+    if models:
+        st.success(f"✅ {len(models)} modelos cargados exitosamente")
+    else:
+        st.warning("⚠️ No se pudieron cargar los modelos ML")
     
-    if not models:
-        st.warning("⚠️ Modelos ML no disponibles en esta versión cloud. Los datos y visualizaciones funcionan perfectamente.")
-    
-    return models
+    return models, scaler
 
 # Función principal
 def main():
@@ -485,7 +554,7 @@ def main():
         st.markdown("Ingresa las características del estudiante para predecir su GPA")
         
         # Cargar modelos
-        models = load_models()
+        models, scaler = load_models()
         
         if not models:
             st.warning("⚠️ No se encontraron modelos entrenados. Por favor, entrena los modelos primero.")

@@ -9,3 +9,4 @@ Pillow
 statsmodels
 tensorflow-cpu
 requests
+gdown

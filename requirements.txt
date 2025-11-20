@@ -7,3 +7,5 @@ scikit-learn
 xgboost
 Pillow
 statsmodels
+tensorflow==2.15.0
+requests

@@ -6,7 +6,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pymongo import MongoClient
 import pickle
-from tensorflow.keras.models import load_model
 from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
@@ -107,7 +106,11 @@ def load_models():
             models['XGBoost'] = pickle.load(f)
         
         # Cargar Red Neuronal
-        models['Neural Network'] = load_model('/mnt/user-data/uploads/neural_network_model.h5')
+        try:
+    from tensorflow.keras.models import load_model
+    models['Neural Network'] = load_model('neural_network_model.h5')
+except:
+    st.warning("⚠️ Red Neuronal no disponible en esta versión cloud")
         
         return models
     except Exception as e:
